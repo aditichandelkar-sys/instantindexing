@@ -18,14 +18,15 @@ export async function GET() {
         const norm = item.url.trim();
         if (!seen.has(norm)) {
           seen.add(norm);
-          allUrls.push({
-            url: norm,
-            trackingId: item.trackingId || '',
-            category: item.category || { label: 'Link', type: 'backlink' },
-            status: item.status || 'Processed',
-            submittedAt: item.submittedAt || b.createdAt,
-            batchId: b.batchId,
-          });
+            allUrls.push({
+              url: norm,
+              trackingId: item.trackingId || '',
+              category: item.category || { label: 'Link', type: 'backlink' },
+              status: item.status || 'Processed',
+              submittedAt: item.submittedAt || b.createdAt,
+              batchId: b.batchId,
+              technicalAnalysis: item.technicalAnalysis,
+            });
           if (allUrls.length >= 500) break;
         }
       }

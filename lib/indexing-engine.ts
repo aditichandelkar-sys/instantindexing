@@ -1,8 +1,9 @@
-import crypto from 'crypto';
-import http from 'http';
-import https from 'https';
 import { BatchItem, BatchRecord } from './types';
 import { getCredentials, getBatches, saveBatches } from './storage';
+import { analyzeUrl, TechnicalAnalysis } from './url-analyzer';
+import { normalizeUrl } from './url-importer';
+import { pingWebSubHub, GoogleIndexingApiAdapter, OmegaIndexerAdapter } from './providers';
+export { getGoogleAccessToken, publishToGoogleIndexingApi } from './indexing-engine-helpers';
 
 export function detectUrlCategory(url: string) {
   const u = (url || '').toLowerCase();
@@ -27,262 +28,27 @@ export function detectUrlCategory(url: string) {
   return { type: 'backlink', label: 'Backlink / Webpage', icon: '🔗', color: '#8B5CF6' };
 }
 
-function base64UrlEncode(str: string): string {
-  return Buffer.from(str)
-    .toString('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
+export interface ProcessBatchOptions {
+  mode?: 'third_party' | 'gsc_property';
+  skipAnalysis?: boolean;
 }
 
-const saTokenCache: { [email: string]: { token: string; expiry: number } } = {};
-
-export async function getGoogleAccessToken(serviceAccount: { client_email: string; private_key: string }): Promise<string> {
-  const { client_email, private_key } = serviceAccount;
-  if (!client_email || !private_key) {
-    throw new Error('Invalid Service Account: client_email or private_key missing');
-  }
-
-  const cached = saTokenCache[client_email];
-  const now = Math.floor(Date.now() / 1000);
-  if (cached && cached.expiry > now + 300) {
-    return cached.token;
-  }
-
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const payload = {
-    iss: client_email,
-    scope: 'https://www.googleapis.com/auth/indexing',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now
-  };
-
-  const encodedHeader = base64UrlEncode(JSON.stringify(header));
-  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
-  const signatureInput = `${encodedHeader}.${encodedPayload}`;
-
-  const signer = crypto.createSign('RSA-SHA256');
-  signer.update(signatureInput);
-  const signature = signer.sign(private_key, 'base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-
-  const jwt = `${signatureInput}.${signature}`;
-
-  const tokenData: any = await new Promise((resolve, reject) => {
-    const postData = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`;
-    const req = https.request('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData)
-      },
-      timeout: 8000
-    }, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(body);
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300 && parsed.access_token) {
-            resolve(parsed);
-          } else {
-            reject(new Error(parsed.error_description || parsed.error || `HTTP ${res.statusCode}`));
-          }
-        } catch (e) {
-          reject(new Error('Failed to parse Google OAuth response'));
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('Google OAuth token request timed out')); });
-    req.write(postData);
-    req.end();
-  });
-
-  saTokenCache[client_email] = {
-    token: tokenData.access_token,
-    expiry: now + (tokenData.expires_in || 3600)
-  };
-
-  return tokenData.access_token;
-}
-
-export async function publishToGoogleIndexingApi(url: string, serviceAccount: any, type: string = 'URL_UPDATED') {
-  const accessToken = await getGoogleAccessToken(serviceAccount);
-  const payload = JSON.stringify({ url: url, type: type });
-
-  return new Promise((resolve) => {
-    const req = https.request('https://indexing.googleapis.com/v3/urlNotifications:publish', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Length': Buffer.byteLength(payload)
-      },
-      timeout: 8000
-    }, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(body);
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            resolve({
-              success: true,
-              statusCode: res.statusCode,
-              data: parsed,
-              notifyTime: parsed.urlNotificationMetadata?.latestUpdate?.notifyTime || new Date().toISOString()
-            });
-          } else {
-            resolve({
-              success: false,
-              statusCode: res.statusCode,
-              error: parsed.error?.message || `HTTP ${res.statusCode}`
-            });
-          }
-        } catch (e: any) {
-          resolve({ success: false, statusCode: res.statusCode, error: e.message });
-        }
-      });
-    });
-
-    req.on('error', (err) => resolve({ success: false, error: err.message }));
-    req.on('timeout', () => { req.destroy(); resolve({ success: false, error: 'Indexing API timeout' }); });
-    req.write(payload);
-    req.end();
-  });
-}
-
-export async function pingGoogleRpcAndHub(targetUrl: string) {
-  const startTime = Date.now();
-  const results = [];
-
-  const xmlPayload = `<?xml version="1.0"?>
-<methodCall>
-  <methodName>weblogUpdates.extendedPing</methodName>
-  <params>
-    <param><value>Index Metrix Bot</value></param>
-    <param><value>${targetUrl}</value></param>
-    <param><value>${targetUrl}</value></param>
-    <param><value>${targetUrl}</value></param>
-  </params>
-</methodCall>`;
-
-  try {
-    const rpcPromise = new Promise((resolve) => {
-      const req = http.request({
-        hostname: 'blogsearch.google.com',
-        port: 80,
-        path: '/ping/RPC2',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/xml',
-          'Content-Length': Buffer.byteLength(xmlPayload)
-        },
-        timeout: 2000
-      }, (res) => {
-        resolve({ service: 'Google RPC Ping', status: 'pinged', code: res.statusCode });
-      });
-      req.on('error', () => resolve({ service: 'Google RPC Ping', status: 'dispatched (broadcast)', code: 200 }));
-      req.on('timeout', () => { req.destroy(); resolve({ service: 'Google RPC Ping', status: 'dispatched (fast)', code: 200 }); });
-      req.write(xmlPayload);
-      req.end();
-    });
-
-    const hubPromise = new Promise((resolve) => {
-      const hubData = `hub.mode=publish&hub.url=${encodeURIComponent(targetUrl)}`;
-      const req = https.request('https://pubsubhubbub.appspot.com/publish', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(hubData)
-        },
-        timeout: 2000
-      }, (res) => {
-        resolve({ service: 'Google WebSub Hub', status: 'published', code: res.statusCode });
-      });
-      req.on('error', () => resolve({ service: 'Google WebSub Hub', status: 'queued', code: 204 }));
-      req.on('timeout', () => { req.destroy(); resolve({ service: 'Google WebSub Hub', status: 'queued', code: 204 }); });
-      req.write(hubData);
-      req.end();
-    });
-
-    const [rpcRes, hubRes] = await Promise.all([rpcPromise, hubPromise]);
-    results.push(rpcRes, hubRes);
-  } catch (e: any) {
-    results.push({ service: 'Ping Network', status: 'dispatched', error: e.message });
-  }
-
-  return {
-    engine: 'Google WebSub & RPC Pinger',
-    results,
-    latencyMs: Date.now() - startTime
-  };
-}
-
-export async function pingIndexNow(urlList: string[]) {
-  const startTime = Date.now();
-  const host = 'indexmetrix.local';
-  const key = crypto.randomBytes(16).toString('hex');
-  const payload = JSON.stringify({
-    host: host,
-    key: key,
-    keyLocation: `https://${host}/${key}.txt`,
-    urlList: urlList.slice(0, 50)
-  });
-
-  return new Promise((resolve) => {
-    const req = https.request('https://api.indexnow.org/indexnow', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Length': Buffer.byteLength(payload)
-      },
-      timeout: 2500
-    }, (res) => {
-      resolve({
-        engine: 'IndexNow Protocol',
-        statusCode: res.statusCode,
-        status: res.statusCode === 200 || res.statusCode === 202 ? 'accepted' : 'broadcasted',
-        latencyMs: Date.now() - startTime
-      });
-    });
-
-    req.on('error', () => resolve({ engine: 'IndexNow Protocol', status: 'broadcasted (cached)', latencyMs: Date.now() - startTime }));
-    req.on('timeout', () => { req.destroy(); resolve({ engine: 'IndexNow Protocol', status: 'broadcasted', latencyMs: Date.now() - startTime }); });
-    req.write(payload);
-    req.end();
-  });
-}
-
-export async function processIndexingBatch(urls: string[]): Promise<BatchRecord> {
+export async function processIndexingBatch(
+  rawUrls: string[],
+  options: ProcessBatchOptions = {}
+): Promise<BatchRecord> {
   const creds = getCredentials();
   const activeServiceAccounts = creds.serviceAccounts || [];
   const batchId = 'btch_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
   const startTime = Date.now();
+  const mode = options.mode || 'third_party';
 
-  const urlItems: BatchItem[] = [];
-  let serviceAccountIndex = 0;
-
-  // Strict URL validation and normalization
+  // 1. Strict URL validation, normalization, and deduplication
   const validatedUrls: string[] = [];
-  for (const raw of urls) {
-    const trimmed = (raw || '').trim();
-    if (!trimmed) continue;
-    const withProto = (trimmed.startsWith('http://') || trimmed.startsWith('https://'))
-      ? trimmed
-      : 'https://' + trimmed;
-    try {
-      const parsed = new URL(withProto);
-      if ((parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.hostname && parsed.hostname.includes('.')) {
-        validatedUrls.push(parsed.href);
-      }
-    } catch {
-      // Skip invalid URLs
+  for (const raw of rawUrls) {
+    const normalized = normalizeUrl(raw);
+    if (normalized) {
+      validatedUrls.push(normalized);
     }
   }
 
@@ -292,7 +58,11 @@ export async function processIndexingBatch(urls: string[]): Promise<BatchRecord>
     throw new Error('No valid HTTP or HTTPS URLs provided. Please ensure URLs have valid format (e.g. https://example.com).');
   }
 
-  const chunkSize = 15;
+  const urlItems: BatchItem[] = [];
+  let serviceAccountIndex = 0;
+
+  // 2. Process URLs in bounded concurrent chunks (chunk size: 10)
+  const chunkSize = 10;
   for (let c = 0; c < cleanUrls.length; c += chunkSize) {
     const chunk = cleanUrls.slice(c, c + chunkSize);
     const chunkPromises = chunk.map(async (targetUrl) => {
@@ -300,53 +70,82 @@ export async function processIndexingBatch(urls: string[]): Promise<BatchRecord>
       const trackingId = 'trk_' + Math.random().toString(36).substring(2, 10);
       const itemStartTime = Date.now();
 
-      let googleApiResult = null;
-      const tierResults: any[] = [];
+      // Technical analysis (SSRF-safe DNS, HTTP status, robots.txt, canonical, meta robots)
+      let analysis: TechnicalAnalysis | undefined;
+      if (!options.skipAnalysis) {
+        try {
+          analysis = await analyzeUrl(targetUrl);
+        } catch (analysisErr: any) {
+          console.warn(`[ANALYSIS_WARN] Error analyzing ${targetUrl}:`, analysisErr.message);
+        }
+      }
 
+      // Google Indexing API (Real Service Account only — never fake simulation)
+      let googleApiResult: any = null;
       if (activeServiceAccounts.length > 0) {
         const sa = activeServiceAccounts[serviceAccountIndex++ % activeServiceAccounts.length];
-        try {
-          const res: any = await publishToGoogleIndexingApi(targetUrl, sa, 'URL_UPDATED');
-          googleApiResult = {
-            account: sa.client_email,
-            success: res.success,
-            statusCode: res.statusCode,
-            notifyTime: res.notifyTime || new Date().toISOString(),
-            error: res.error || null
-          };
-        } catch (err: any) {
-          googleApiResult = {
-            account: sa.client_email,
-            success: false,
-            error: err.message
-          };
-        }
+        const googleAdapter = new GoogleIndexingApiAdapter();
+        const submitRes = await googleAdapter.submit([targetUrl], { serviceAccount: sa });
+        googleApiResult = {
+          account: sa.client_email,
+          success: submitRes.success,
+          statusCode: submitRes.statusCode || (submitRes.success ? 200 : 400),
+          notifyTime: new Date().toISOString(),
+          message: submitRes.message,
+          error: submitRes.success ? null : submitRes.message,
+        };
       } else {
         googleApiResult = {
-          account: 'demo-google-service-account@gcp-indexing.iam.gserviceaccount.com',
-          success: true,
-          statusCode: 200,
-          notifyTime: new Date().toISOString(),
-          isSimulated: true,
-          note: 'Priority Queue Ready. Upload Google Service Account JSON to use custom Cloud quota.'
+          configured: false,
+          account: 'None',
+          success: false,
+          note: 'No Google Cloud Service Account configured. Upload JSON credentials in Settings to enable Google Indexing API for eligible JobPosting/BroadcastEvent pages.',
         };
       }
 
-      const rpcPing = await pingGoogleRpcAndHub(targetUrl);
-      tierResults.push(rpcPing);
+      // OmegaIndexer Adapter (if API key is present in credentials)
+      let providerDispatches: any[] = [];
+      const omegaApiKey = creds.apiKey || creds.omegaApiKey;
+      if (omegaApiKey) {
+        const omegaAdapter = new OmegaIndexerAdapter();
+        const omegaRes = await omegaAdapter.submit([targetUrl], { apiKey: omegaApiKey });
+        providerDispatches.push(omegaRes);
+      }
 
       const itemLatency = Date.now() - itemStartTime;
+
+      // Determine truthful per-URL status
+      let displayStatus = 'Queued for Crawl Discovery';
+      if (analysis) {
+        if (analysis.verdict === 'ssrf_blocked') {
+          displayStatus = 'Prohibited (SSRF Blocked)';
+        } else if (analysis.verdict === 'blocked_noindex') {
+          displayStatus = 'Blocked (Meta Noindex)';
+        } else if (analysis.verdict === 'blocked_robots') {
+          displayStatus = 'Blocked (Robots.txt)';
+        } else if (analysis.verdict === 'client_error') {
+          displayStatus = `HTTP ${analysis.statusCode} Client Error`;
+        } else if (analysis.verdict === 'server_error') {
+          displayStatus = `HTTP ${analysis.statusCode} Server Error`;
+        } else if (analysis.verdict === 'unreachable') {
+          displayStatus = 'Unreachable Destination';
+        } else if (analysis.isIndexable) {
+          displayStatus = 'Technically Indexable';
+        }
+      }
 
       return {
         url: targetUrl,
         trackingId: trackingId,
         category: category,
-        status: 'Processed', // Processed = submitted to crawl priority pipeline. (NOT falsely 'Indexed')
-        indexStatus: 'Unverified',
+        status: displayStatus,
+        indexStatus: 'Unverified', // Never falsely claim 'Indexed' without verified Search Console confirmation
+        technicalAnalysis: analysis,
         googleApi: googleApiResult,
-        tierResults: tierResults,
+        providerDispatches: providerDispatches,
+        tierResults: [],
         responseLatency: itemLatency,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
       };
     });
 
@@ -354,23 +153,27 @@ export async function processIndexingBatch(urls: string[]): Promise<BatchRecord>
     urlItems.push(...chunkResults);
   }
 
-  if (urlItems.length > 0) {
-    pingIndexNow(urlItems.map(item => item.url)).catch(() => {});
-  }
+  // 3. Trigger WebSub broadcast for the updated syndication feed
+  const feedUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://indexmetrixx.vercel.app'}/feed.xml`;
+  pingWebSubHub(feedUrl).catch(() => {});
+
+  const acceptedCount = urlItems.filter(i => i.status !== 'Prohibited (SSRF Blocked)' && i.status !== 'Unreachable Destination').length;
 
   const batchRecord: BatchRecord = {
     batchId: batchId,
     totalUrls: urlItems.length,
     status: 'Processed',
-    accepted: urlItems.length,
-    successRate: '100%',
+    accepted: acceptedCount,
+    successRate: `${Math.round((acceptedCount / urlItems.length) * 100)}%`,
     processingTimeMs: Date.now() - startTime,
     createdAt: new Date().toISOString(),
+    mode: mode,
     serviceAccountsUsed: activeServiceAccounts.length,
     isLiveGoogleApi: activeServiceAccounts.length > 0,
-    items: urlItems
+    items: urlItems,
   };
 
+  // 4. Authoritative persistence in Vercel Blob store & fallback
   const batches = await getBatches();
   batches.unshift(batchRecord);
   await saveBatches(batches);

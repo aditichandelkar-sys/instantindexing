@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const batch = await processIndexingBatch(urlList);
+    const mode = body?.mode === 'gsc_property' ? 'gsc_property' : 'third_party';
+    const batch = await processIndexingBatch(urlList, { mode });
 
     // Safe diagnostic logging (batch ID and count only, no tokens/secrets)
     console.log(`[SUBMIT] Successfully accepted and stored batch ${batch.batchId} (${batch.accepted} URLs)`);

@@ -39,6 +39,13 @@ export default function IndexMetrixApp() {
   const [modalDone, setModalDone] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
+  // Sitemap & File Import State
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importFeedUrl, setImportFeedUrl] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Google Search Console State
   const [gscStatus, setGscStatus] = useState<{ connected: boolean; isConfigured: boolean; user: any }>({
     connected: false,
@@ -427,6 +434,80 @@ export default function IndexMetrixApp() {
     );
   }
 
+  async function handleImportFeed() {
+    const feed = importFeedUrl.trim();
+    if (!feed) {
+      setImportError('Please enter a valid sitemap or RSS feed URL.');
+      return;
+    }
+
+    setImportLoading(true);
+    setImportError(null);
+
+    try {
+      const res = await fetch('/api/url/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedUrl: feed }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.urls)) {
+        if (data.urls.length === 0) {
+          setImportError('No URLs found in the specified feed/sitemap.');
+        } else {
+          const current = parseUrls(urlInput);
+          const combined = Array.from(new Set([...current, ...data.urls]));
+          setUrlInput(combined.join('\n'));
+          setImportModalOpen(false);
+          setImportFeedUrl('');
+          setCleanedNotice(`Imported ${data.urls.length} URLs`);
+          setTimeout(() => setCleanedNotice(null), 3000);
+        }
+      } else {
+        setImportError(data.error || 'Failed to import URLs from feed.');
+      }
+    } catch (err: any) {
+      setImportError(err.message || 'Network error during feed import.');
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target?.result as string;
+      if (!content) return;
+
+      try {
+        const isCsv = file.name.endsWith('.csv');
+        const res = await fetch('/api/url/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(isCsv ? { csvContent: content } : { rawText: content }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success && Array.isArray(data.urls)) {
+          const current = parseUrls(urlInput);
+          const combined = Array.from(new Set([...current, ...data.urls]));
+          setUrlInput(combined.join('\n'));
+          setCleanedNotice(`Loaded ${data.urls.length} URLs from file`);
+          setTimeout(() => setCleanedNotice(null), 3000);
+        } else {
+          alert(data.error || 'Failed to parse file.');
+        }
+      } catch (err: any) {
+        alert('File upload error: ' + err.message);
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }
+
   function handleExportCsv() {
     if (batches.length === 0) {
       alert('No batches to export.');
@@ -698,6 +779,29 @@ export default function IndexMetrixApp() {
                 </p>
               </div>
               <div className="sample-pills-wrap">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".csv,.txt"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  className="btn-sample"
+                  onClick={() => setImportModalOpen(true)}
+                  title="Import URLs from an XML Sitemap or RSS feed"
+                >
+                  🗺️ Import Sitemap / RSS
+                </button>
+                <button
+                  type="button"
+                  className="btn-sample"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload CSV or TXT file"
+                >
+                  📁 Upload CSV / TXT
+                </button>
                 <button type="button" className="btn-sample" onClick={handleLoadSample}>
                   Load Sample URLs
                 </button>
@@ -1207,8 +1311,8 @@ export default function IndexMetrixApp() {
               <div className={stage2Class} id="stage2">
                 <span className="step-indicator">2</span>
                 <div className="step-info">
-                  <div className="step-title">Google Priority Queue Handshake</div>
-                  <div className="step-desc">Publishing URL_UPDATED notification dispatch</div>
+                  <div className="step-title">Technical Indexability Probe</div>
+                  <div className="step-desc">SSRF defense, HTTP code, robots.txt &amp; canonical</div>
                 </div>
                 <span className="step-status">{stage2Text}</span>
               </div>
@@ -1216,8 +1320,8 @@ export default function IndexMetrixApp() {
               <div className={stage3Class} id="stage3">
                 <span className="step-indicator">3</span>
                 <div className="step-info">
-                  <div className="step-title">Google WebSub &amp; IndexNow Syndication</div>
-                  <div className="step-desc">Pinging Google XML-RPC &amp; IndexNow network</div>
+                  <div className="step-title">Crawl Hub &amp; WebSub Syndication</div>
+                  <div className="step-desc">Discovery RSS broadcast &amp; hub ping</div>
                 </div>
                 <span className="step-status">{stage3Text}</span>
               </div>
@@ -1225,8 +1329,8 @@ export default function IndexMetrixApp() {
               <div className={stage4Class} id="stage4">
                 <span className="step-indicator">4</span>
                 <div className="step-info">
-                  <div className="step-title">Googlebot Bait Crawl Gateway Enqueue</div>
-                  <div className="step-desc">Dynamic XML feed syndication &amp; verification</div>
+                  <div className="step-title">Authoritative Storage Persistence</div>
+                  <div className="step-desc">Durable cloud storage &amp; crawl queue commit</div>
                 </div>
                 <span className="step-status">{stage4Text}</span>
               </div>
@@ -1249,17 +1353,47 @@ export default function IndexMetrixApp() {
                   )
                 ) : (
                   modalResults.map((item, idx) => (
-                    <div className="stream-item" key={idx}>
-                      <div className="stream-url-wrap">
-                        <span>🔗</span>
-                        <span className="stream-url" title={item.url}>
-                          {item.url}
-                        </span>
+                    <div className="stream-item" key={idx} style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '10px 14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <div className="stream-url-wrap">
+                          <span>🔗</span>
+                          <span className="stream-url" title={item.url}>
+                            {item.url}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {item.technicalAnalysis?.statusCode ? (
+                            <span className="badge-http-code">HTTP {item.technicalAnalysis.statusCode}</span>
+                          ) : null}
+                          <span className="stream-latency">{item.responseLatency || 210}ms</span>
+                          <span className={`badge-status ${
+                            item.status.includes('Indexable') ? 'badge-indexable' :
+                            item.status.includes('Blocked') || item.status.includes('Prohibited') ? 'badge-blocked' :
+                            item.status.includes('Redirect') ? 'badge-redirect' : 'badge-processed'
+                          }`}>
+                            ● {item.status}
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span className="stream-latency">{item.responseLatency || 210}ms</span>
-                        <span className="badge-status badge-processed">● Processed</span>
-                      </div>
+                      {item.technicalAnalysis && (
+                        <div className="stream-meta-line">
+                          {item.technicalAnalysis.pageTitle && (
+                            <span className="stream-meta-pill">Title: {item.technicalAnalysis.pageTitle.substring(0, 45)}...</span>
+                          )}
+                          {item.technicalAnalysis.canonicalUrl && (
+                            <span className="stream-meta-pill">Canonical: {item.technicalAnalysis.canonicalUrl}</span>
+                          )}
+                          {item.technicalAnalysis.metaRobots && (
+                            <span className="stream-meta-pill" style={{ color: item.technicalAnalysis.metaRobots.includes('noindex') ? '#F87171' : undefined }}>
+                              Robots: {item.technicalAnalysis.metaRobots}
+                            </span>
+                          )}
+                          {item.technicalAnalysis.robotsTxtAllowed === false && (
+                            <span className="stream-meta-pill" style={{ color: '#F87171' }}>Robots.txt: Disallowed</span>
+                          )}
+                          <span className="stream-meta-pill" style={{ color: '#94A3B8' }}>{item.technicalAnalysis.verdictReason}</span>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -1520,6 +1654,74 @@ export default function IndexMetrixApp() {
           </div>
         </div>
       </footer>
+
+      {/* ============================ SITEMAP / RSS IMPORT MODAL ============================ */}
+      {importModalOpen && (
+        <div className="modal-overlay" onClick={() => setImportModalOpen(false)}>
+          <div className="import-dialog" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 700 }}>
+                🗺️ Import URLs from Sitemap or RSS
+              </h3>
+              <button
+                type="button"
+                onClick={() => setImportModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              Enter the public URL of an XML Sitemap (e.g. <code>https://example.com/sitemap.xml</code>) or RSS feed. Index Metrix will validate, defend against SSRF, extract the URLs, and load them into your submitter.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <input
+                type="url"
+                placeholder="https://example.com/sitemap.xml"
+                value={importFeedUrl}
+                onChange={(e) => setImportFeedUrl(e.target.value)}
+                style={{
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.75rem 1rem',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  width: '100%',
+                }}
+              />
+
+              {importError && (
+                <div style={{ color: '#F87171', fontSize: '0.8rem', padding: '6px 10px', background: 'rgba(239, 68, 68, 0.12)', borderRadius: '4px' }}>
+                  ⚠️ {importError}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setImportModalOpen(false)}
+                disabled={importLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleImportFeed}
+                disabled={importLoading}
+              >
+                {importLoading ? 'Fetching & Parsing...' : 'Import URLs'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -2234,3 +2234,72 @@ button, input, textarea, select {
   max-width: 600px;
 }
 
+/* Technical Analysis Badges & Indicators */
+.badge-indexable {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34D399;
+}
+
+.badge-blocked {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #F87171;
+}
+
+.badge-redirect {
+  background: rgba(168, 85, 247, 0.18);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #C084FC;
+}
+
+.badge-http-code {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #E2E8F0;
+}
+
+.stream-meta-line {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+
+.stream-meta-pill {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Import Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 7, 13, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.import-dialog {
+  background: #0F172A;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  max-width: 550px;
+  width: 100%;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8);
+}
+

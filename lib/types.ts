@@ -1,3 +1,5 @@
+import { TechnicalAnalysis } from './url-analyzer';
+
 export interface GscUser {
   email: string;
   name?: string;
@@ -61,10 +63,12 @@ export interface BatchItem {
     icon: string;
     color: string;
   };
-  status: string;
-  indexStatus: string;
-  googleApi: any;
-  tierResults: any[];
+  status: string; // 'Queued for Discovery', 'Technically Indexable', 'Blocked (noindex/robots)', 'Failed'
+  indexStatus: string; // 'Unverified', 'Indexed' (only if confirmed by GSC or real verified source)
+  technicalAnalysis?: TechnicalAnalysis;
+  googleApi?: any;
+  tierResults?: any[];
+  providerDispatches?: any[];
   responseLatency: number;
   submittedAt: string;
 }
@@ -77,6 +81,7 @@ export interface BatchRecord {
   successRate: string;
   processingTimeMs: number;
   createdAt: string;
+  mode?: 'third_party' | 'gsc_property';
   serviceAccountsUsed: number;
   isLiveGoogleApi: boolean;
   items: BatchItem[];

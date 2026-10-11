@@ -15,6 +15,7 @@ interface QueuedItem {
   status?: string;
   submittedAt?: string;
   batchId?: string;
+  technicalAnalysis?: any;
 }
 
 interface Props {
@@ -212,7 +213,22 @@ export default function CrawlHubClient({ initialUrls, initialError }: Props) {
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {item.technicalAnalysis?.statusCode ? (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      color: '#cbd5e1',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    HTTP {item.technicalAnalysis.statusCode}
+                  </span>
+                ) : null}
                 <span
                   style={{
                     fontSize: '11px',
@@ -231,12 +247,25 @@ export default function CrawlHubClient({ initialUrls, initialError }: Props) {
                     fontSize: '11px',
                     padding: '3px 9px',
                     borderRadius: '99px',
-                    background: '#065f46',
-                    color: '#6ee7b7',
+                    background: (item.status || '').includes('Indexable')
+                      ? 'rgba(16, 185, 129, 0.2)'
+                      : (item.status || '').includes('Blocked') || (item.status || '').includes('Prohibited')
+                      ? 'rgba(239, 68, 68, 0.2)'
+                      : '#065f46',
+                    color: (item.status || '').includes('Indexable')
+                      ? '#34d399'
+                      : (item.status || '').includes('Blocked') || (item.status || '').includes('Prohibited')
+                      ? '#f87171'
+                      : '#6ee7b7',
+                    border: (item.status || '').includes('Indexable')
+                      ? '1px solid rgba(16, 185, 129, 0.3)'
+                      : (item.status || '').includes('Blocked') || (item.status || '').includes('Prohibited')
+                      ? '1px solid rgba(239, 68, 68, 0.3)'
+                      : 'none',
                     fontWeight: 500,
                   }}
                 >
-                  ● Queued
+                  ● {item.status || 'Queued'}
                 </span>
               </div>
             </li>

@@ -1,6 +1,6 @@
-# InstantIndexing Pro ⚡ — Fast URL & Backlink Indexer for Google
+# Index Metrix ⚡ — Fast URL & Backlink Indexer for Google
 
-InstantIndexing Pro is a high-speed, multi-tier URL and backlink indexing acceleration platform with official **Google Search Console API** integration.
+Index Metrix is a high-speed, multi-tier URL and backlink indexing acceleration platform with official **Google Search Console API** integration.
 
 ---
 
@@ -35,7 +35,7 @@ InstantIndexing Pro is a high-speed, multi-tier URL and backlink indexing accele
    * **Google Search Console API** (Search Console API)
 4. Go to **APIs & Services > OAuth consent screen**:
    * Select **External** (or Internal for Google Workspace).
-   * Enter App name: `InstantIndexing`.
+   * Enter App name: `Index Metrix`.
    * Add scopes:
      * `.../auth/webmasters.readonly`
      * `.../auth/webmasters`
@@ -44,8 +44,8 @@ InstantIndexing Pro is a high-speed, multi-tier URL and backlink indexing accele
 5. Go to **APIs & Services > Credentials**:
    * Click **Create Credentials > OAuth client ID**.
    * Application type: **Web application**.
-   * Name: `InstantIndexing Web Client`.
-   * **Authorized redirect URIs:** Add `http://localhost:3000/auth/google/callback`
+   * Name: `Index Metrix Web Client`.
+   * **Authorized redirect URIs:** Add `https://indexmetrix.vercel.app/auth/google/callback` and `http://localhost:3000/auth/google/callback`
    * Click **Create** and copy your **Client ID** and **Client Secret**.
 
 ### Step 2: Configure Environment Variables

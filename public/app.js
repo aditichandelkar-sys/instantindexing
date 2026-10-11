@@ -1,5 +1,5 @@
 /* ==========================================================================
-   INSTANTINDEXING PRO — CLIENT JAVASCRIPT LOGIC
+   INDEX METRIX — CLIENT JAVASCRIPT LOGIC
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -740,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `instantindexing_batches_${Date.now()}.csv`;
+    a.download = `indexmetrix_batches_${Date.now()}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   });

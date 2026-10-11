@@ -1,7 +1,7 @@
 @echo off
-title InstantIndexing Pro Server
+title Index Metrix Server
 echo ====================================================
-echo Starting InstantIndexing Pro Server...
+echo Starting Index Metrix Server...
 echo ====================================================
 cd /d "%~dp0"
 node server.js

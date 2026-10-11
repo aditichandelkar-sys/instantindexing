@@ -756,7 +756,7 @@ async function pingGoogleRpcAndHub(targetUrl) {
 <methodCall>
   <methodName>weblogUpdates.extendedPing</methodName>
   <params>
-    <param><value>InstantIndexing Bot</value></param>
+    <param><value>Index Metrix Bot</value></param>
     <param><value>${targetUrl}</value></param>
     <param><value>${targetUrl}</value></param>
     <param><value>${targetUrl}</value></param>
@@ -817,7 +817,7 @@ async function pingGoogleRpcAndHub(targetUrl) {
 
 async function pingIndexNow(urlList) {
   const startTime = Date.now();
-  const host = 'instantindexing.local';
+  const host = 'indexmetrix.local';
   const key = crypto.randomBytes(16).toString('hex');
   const payload = JSON.stringify({
     host: host,
@@ -1125,7 +1125,7 @@ app.get('/crawl-hub', (req, res) => {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Googlebot High-Speed Crawl Gateway | InstantIndexing Hub</title>
+  <title>Googlebot High-Speed Crawl Gateway | Index Metrix Hub</title>
   <meta name="robots" content="index, follow">
   <meta name="description" content="Instant URL syndication and crawl acceleration hub for search crawlers.">
   <style>
@@ -1170,7 +1170,7 @@ app.get('/feed.xml', (req, res) => {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>InstantIndexing Syndication Feed</title>
+    <title>Index Metrix Syndication Feed</title>
     <link>http://localhost:${PORT}/crawl-hub</link>
     <description>Fast backlink and URL indexing feed for search bots</description>
     <language>en-us</language>
@@ -1183,7 +1183,7 @@ app.get('/feed.xml', (req, res) => {
       <link>${item.url}</link>
       <guid>${item.trackingId}</guid>
       <pubDate>${new Date(item.submittedAt).toUTCString()}</pubDate>
-      <description>Submitted for instant indexing via InstantIndexing pipeline.</description>
+      <description>Submitted for instant indexing via Index Metrix pipeline.</description>
     </item>`;
   });
 
@@ -1236,7 +1236,7 @@ app.use((req, res) => {
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`====================================================`);
-    console.log(`🚀 InstantIndexing Pro Server running at: http://localhost:${PORT}`);
+    console.log(`🚀 Index Metrix Server running at: http://localhost:${PORT}`);
     console.log(`⚡ Google Search Console API + Multi-Tier Engine Active`);
     console.log(`🌐 Googlebot Crawl Hub at: http://localhost:${PORT}/crawl-hub`);
     console.log(`📡 Syndication RSS Feed at: http://localhost:${PORT}/feed.xml`);

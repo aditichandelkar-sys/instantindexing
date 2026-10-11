@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { tokens, user } = await exchangeCodeForTokens(code);
+    const redirectUri = request.cookies.get('gsc_oauth_redirect_uri')?.value || `${baseUrl}/auth/google/callback`;
+    const { tokens, user } = await exchangeCodeForTokens(code, redirectUri);
 
     const session: GscAuthSession = {
       connectedAt: new Date().toISOString(),
@@ -58,8 +59,9 @@ export async function GET(request: NextRequest) {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     });
 
-    // Clear temporary state cookie
+    // Clear temporary state and redirect cookies
     redirectResponse.cookies.delete('gsc_oauth_state');
+    redirectResponse.cookies.delete('gsc_oauth_redirect_uri');
 
     return redirectResponse;
   } catch (err: any) {

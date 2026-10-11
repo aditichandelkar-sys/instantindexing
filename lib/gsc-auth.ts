@@ -56,14 +56,14 @@ export function getRedirectUri(): string {
   return 'https://indexmetrixx.vercel.app/auth/google/callback';
 }
 
-export function generateAuthUrl(): { url: string; state: string } {
+export function generateAuthUrl(customRedirectUri?: string): { url: string; state: string } {
   const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
   if (!clientId || clientId.includes('your-google-client-id')) {
     throw new Error('GOOGLE_CLIENT_ID is not configured in environment variables');
   }
 
   const state = crypto.randomBytes(16).toString('hex');
-  const redirectUri = getRedirectUri();
+  const redirectUri = customRedirectUri || getRedirectUri();
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -81,10 +81,10 @@ export function generateAuthUrl(): { url: string; state: string } {
   };
 }
 
-export async function exchangeCodeForTokens(code: string): Promise<{ tokens: any; user: any }> {
+export async function exchangeCodeForTokens(code: string, customRedirectUri?: string): Promise<{ tokens: any; user: any }> {
   const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
   const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
-  const redirectUri = getRedirectUri();
+  const redirectUri = customRedirectUri || getRedirectUri();
 
   if (!clientId || !clientSecret) {
     throw new Error('GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing');

@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables & secrets (CRITICAL: NEVER COMMIT TO GIT)
+.env
+.env.local
+.env.*.local
+
+# Sensitive runtime data & OAuth credentials
+data/gsc_auth.json
+data/credentials.json
+data/batches.json
+data/gsc_inspections.json
+
+# Google Cloud Service Account JSON Keys
+*-*.json
+service-account*.json
+instantindexing-*.json
+
+# Logs & Debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

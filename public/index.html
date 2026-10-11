@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InstantIndexing Pro — Fast URL & Backlink Indexer for Google</title>
+  <meta name="description" content="Instant URL and third-party backlink indexing tool for SEO. Submit bulk URLs to Google priority queues and inspect verified properties using Google Search Console API.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============================ HEADER ============================ -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <a href="#" class="brand-logo">
+          <span class="logo-bolt">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 2 4 13.5h6.2L9 22l9.5-12.2H12z"/>
+            </svg>
+          </span>
+          <span class="logo-title">Instant<span class="logo-accent">Indexing</span></span>
+          <span class="badge-pro">PRO</span>
+        </a>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="#backlink-section" class="nav-link active" id="navLinkBacklink">⚡ Bulk URL Submitter</a>
+        <a href="#gsc-section" class="nav-link" id="navLinkGsc">🔍 Search Console API</a>
+        <a href="#batches" class="nav-link">📊 Submission History</a>
+        <a href="#api-docs" class="nav-link">💻 Developer API</a>
+        <a href="/crawl-hub" target="_blank" class="nav-link nav-link--ext">🌐 Crawl Hub ↗</a>
+      </nav>
+
+      <div class="header-actions">
+        <!-- Search Console OAuth Status Pill -->
+        <div class="gsc-header-status" id="headerGscStatus" title="Google Search Console Status">
+          <span class="status-dot dot-neutral" id="gscHeaderDot"></span>
+          <span class="status-label" id="gscHeaderLabel">GSC: Disconnected</span>
+        </div>
+
+        <button class="btn-theme-toggle" id="themeToggleBtn" aria-label="Toggle Dark/Light Mode">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <a href="#gsc-section" class="btn btn-primary-sm" id="btnHeaderConnectGsc">Connect Google</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ HERO SECTION ============================ -->
+  <section class="hero-section">
+    <div class="hero-bg-glow"></div>
+    <div class="container hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>⚡ Fast Google Discovery • Up to 200 URLs Per Batch</span>
+        </div>
+        <h1 class="hero-title">
+          Fast URL &amp; <span class="gradient-text">Backlink Indexer</span> for SEO.
+        </h1>
+        <p class="hero-subtitle">
+          Submit bulk URLs and third-party backlinks to priority crawler queues, automate discovery, and inspect verified properties using the official <strong>Google Search Console API</strong>.
+        </p>
+
+        <div class="hero-metrics-pill">
+          <div class="metric-item">
+            <span class="metric-val">200 Links</span>
+            <span class="metric-lbl">Per Batch Limit</span>
+          </div>
+          <div class="metric-sep"></div>
+          <div class="metric-item">
+            <span class="metric-val">OAuth 2.0</span>
+            <span class="metric-lbl">Secure GSC Auth</span>
+          </div>
+          <div class="metric-sep"></div>
+          <div class="metric-item">
+            <span class="metric-val">Official API</span>
+            <span class="metric-lbl">URL Inspection</span>
+          </div>
+          <div class="metric-sep"></div>
+          <div class="metric-item">
+            <span class="metric-val">Sitemaps</span>
+            <span class="metric-lbl">Submit &amp; Audit</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Overview Card -->
+      <div class="hero-card-wrap">
+        <div class="glass-card hero-stats-card">
+          <div class="card-header-row">
+            <div class="card-title-group">
+              <span class="mini-bolt">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 13.5h6.2L9 22l9.5-12.2H12z"/></svg>
+              </span>
+              <h3>Indexing Pipeline Overview</h3>
+            </div>
+            <span class="live-tag"><span class="dot-live"></span> Live System</span>
+          </div>
+
+          <div class="stats-counter-grid">
+            <div class="stat-box">
+              <span class="stat-name">Total Submitted</span>
+              <span class="stat-num" id="heroTotalSubmitted">18,420</span>
+            </div>
+            <div class="stat-box highlight">
+              <span class="stat-name">Queue Dispatch</span>
+              <span class="stat-num" id="heroSuccessRate">98.7%</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-name">Search Console</span>
+              <span class="stat-num" id="heroGscStateText" style="font-size: 1rem; color:#A5B4FC;">Ready</span>
+            </div>
+          </div>
+
+          <div class="live-chart-container" title="Real-time Submissions">
+            <div class="chart-bars">
+              <span class="chart-bar" style="height: 48%"></span>
+              <span class="chart-bar" style="height: 72%"></span>
+              <span class="chart-bar" style="height: 40%"></span>
+              <span class="chart-bar" style="height: 85%"></span>
+              <span class="chart-bar" style="height: 60%"></span>
+              <span class="chart-bar" style="height: 94%"></span>
+              <span class="chart-bar" style="height: 75%"></span>
+              <span class="chart-bar" style="height: 100%"></span>
+              <span class="chart-bar" style="height: 68%"></span>
+              <span class="chart-bar" style="height: 88%"></span>
+              <span class="chart-bar" style="height: 95%"></span>
+              <span class="chart-bar" style="height: 82%"></span>
+            </div>
+            <div class="chart-label-row">
+              <span>Crawler Queue</span>
+              <span>WebSub Ping</span>
+              <span>Search Console Inspect</span>
+            </div>
+          </div>
+
+          <div class="card-live-row">
+            <div class="live-feed-item">
+              <span class="feed-icon">🔗</span>
+              <span class="feed-url">/blog/seo-indexing-guide-2026</span>
+              <span class="badge-success">● Processed</span>
+            </div>
+          </div>
+
+          <div class="floating-batch-pill">
+            <span class="pill-check">✓</span>
+            <span>Priority Queue Processing Active</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ MAIN WORKSPACE TABS ============================ -->
+  <div class="container main-tabs-nav">
+    <button type="button" class="tab-btn active" id="tabBtnBacklinks">
+      <span class="tab-icon">⚡</span> Bulk URL &amp; Backlink Submitter
+    </button>
+    <button type="button" class="tab-btn" id="tabBtnGsc">
+      <span class="tab-icon">🔍</span> Google Search Console (Authorized Properties)
+    </button>
+  </div>
+
+  <!-- ============================ MODULE 1: BULK URL & BACKLINK SUBMISSION ============================ -->
+  <main class="container" id="backlink-section">
+    <div class="submitter-card glass-card">
+      <div class="submitter-top-row">
+        <div>
+          <h2 class="card-heading">Bulk URL &amp; Backlink Submitter</h2>
+          <p class="card-subheading">
+            Paste your links below — up to 200 URLs at once. Works for any webpage, article, profile link, or third-party backlink to notify search crawlers.
+          </p>
+        </div>
+        <div class="sample-pills-wrap">
+          <button type="button" class="btn-sample" id="btnLoadGeneralSample">Load Sample URLs</button>
+          <button type="button" class="btn-sample" id="btnRemoveDuplicates">Remove Duplicates</button>
+        </div>
+      </div>
+
+      <!-- Textarea Console -->
+      <div class="textarea-wrapper">
+        <div class="textarea-header-bar">
+          <span class="textarea-label">Enter URLs (One URL per line, max 200)</span>
+          <div class="textarea-stats">
+            <span id="urlCountBadge" class="url-count-badge">0 / 200 URLs</span>
+            <button type="button" id="btnClearUrls" class="btn-clear-text" title="Clear all text">Clear</button>
+          </div>
+        </div>
+        <textarea 
+          id="urlInputTextarea" 
+          class="url-textarea" 
+          placeholder="https://example.com/page-1&#10;https://example.com/page-2&#10;https://mythirdpartysite.com/post-123&#10;https://external-resource.org/article-456"
+          rows="9"
+          spellcheck="false"
+        ></textarea>
+        
+        <div class="textarea-footer-bar">
+          <div class="status-disclaimer-text">
+            <span>ℹ <strong>Note:</strong> Third-party submissions enter the high-priority crawl queue. Search engines make final indexing decisions based on content quality and authority.</span>
+          </div>
+          <span class="speed-hint">⚡ Priority Pipeline</span>
+        </div>
+      </div>
+
+      <!-- Submission Engine Options -->
+      <div class="options-accordion">
+        <div class="options-grid">
+          <label class="toggle-option">
+            <input type="checkbox" id="chkWebSubRpc" checked>
+            <span class="toggle-custom"></span>
+            <div class="option-text">
+              <strong>Google WebSub &amp; RPC Ping</strong>
+              <span>Immediate crawl signal broadcast to search discovery nodes</span>
+            </div>
+          </label>
+
+          <label class="toggle-option">
+            <input type="checkbox" id="chkIndexNow" checked>
+            <span class="toggle-custom"></span>
+            <div class="option-text">
+              <strong>IndexNow Protocol Syndicate</strong>
+              <span>Instant indexing notification across supporting search networks</span>
+            </div>
+          </label>
+
+          <label class="toggle-option">
+            <input type="checkbox" id="chkCrawlHub" checked>
+            <span class="toggle-custom"></span>
+            <div class="option-text">
+              <strong>Dynamic Googlebot Crawl Hub</strong>
+              <span>Adds submitted links to live syndication RSS feed &amp; crawl gateway</span>
+            </div>
+          </label>
+
+          <label class="toggle-option">
+            <input type="checkbox" id="chkGoogleApi" checked>
+            <span class="toggle-custom"></span>
+            <div class="option-text">
+              <strong>Service Account Priority Queue</strong>
+              <span>Direct URL_UPDATED publish dispatch via Google Cloud Service Accounts</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Submit Action Row -->
+      <div class="submit-action-row">
+        <div class="quota-info-tag">
+          <span class="icon-info">ℹ</span>
+          <span id="quotaInfoText">Ready to dispatch up to 200 URLs. Duplicates automatically filtered.</span>
+        </div>
+
+        <button type="button" class="btn btn-primary-lg btn-glow" id="btnSubmitIndexing">
+          <span class="btn-icon">⚡</span>
+          <span class="btn-text">Submit URLs to Priority Queue</span>
+          <span class="btn-speed-badge">~2.0s</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================ MODULE 2: GOOGLE SEARCH CONSOLE INTEGRATION ============================ -->
+  <section class="container" id="gsc-section" style="display: none;">
+    <div class="submitter-card glass-card">
+      <div class="section-header-row">
+        <div>
+          <span class="section-eyebrow">Official Google Verification</span>
+          <h2 class="card-heading">Google Search Console API Integration</h2>
+          <p class="card-subheading">
+            Connect your Google account via OAuth 2.0 to inspect URLs for verified properties, check real indexing status, and submit XML sitemaps.
+          </p>
+        </div>
+        <div class="gsc-oauth-actions">
+          <div id="gscConnectedBadge" class="connection-badge disconnected">
+            <span class="dot-status"></span>
+            <span id="gscConnectedStatusText">Not Connected</span>
+          </div>
+          <button type="button" class="btn btn-primary" id="btnConnectGoogle">Connect Google Search Console</button>
+          <button type="button" class="btn btn-outline" id="btnDisconnectGoogle" style="display: none;">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- GSC Property Selector & Stats Bar -->
+      <div class="gsc-property-card" id="gscPropertyCard">
+        <div class="property-select-group">
+          <label for="gscPropertySelect" class="form-label">
+            <strong>Select Authorized Property:</strong>
+            <span class="label-help">(Only sites verified in your Search Console account appear here)</span>
+          </label>
+          <div class="select-with-refresh">
+            <select id="gscPropertySelect" class="select-property">
+              <option value="">-- Connect Google to load authorized properties --</option>
+            </select>
+            <button type="button" class="btn btn-outline-sm" id="btnRefreshProperties" title="Refresh properties">🔄</button>
+          </div>
+        </div>
+
+        <div class="property-meta-info" id="propertyMetaInfo">
+          <span class="meta-tag">Permission: <strong id="propPermissionLevel">-</strong></span>
+          <span class="meta-tag">Property Type: <strong id="propTypeDisplay">-</strong></span>
+        </div>
+      </div>
+
+      <!-- Search Console Sub-Tabs (URL Inspection vs Sitemaps) -->
+      <div class="gsc-subtabs-row">
+        <button type="button" class="subtab-btn active" id="subtabBtnInspect">
+          🔍 Inspect URLs (Official Index Status)
+        </button>
+        <button type="button" class="subtab-btn" id="subtabBtnSitemaps">
+          🗺️ Sitemaps Management
+        </button>
+      </div>
+
+      <!-- SUB-TAB 1: URL INSPECTION FOR AUTHORIZED PROPERTY -->
+      <div id="gscInspectView" class="gsc-subview active">
+        <div class="inspect-input-box">
+          <div class="textarea-header-bar">
+            <span class="textarea-label">Enter URLs to Inspect (Must belong to selected property):</span>
+            <button type="button" class="btn-clear-text" id="btnClearInspectUrls">Clear</button>
+          </div>
+          <textarea 
+            id="gscInspectTextarea" 
+            class="url-textarea" 
+            placeholder="https://yourverifiedsite.com/&#10;https://yourverifiedsite.com/about-us&#10;https://yourverifiedsite.com/products/example"
+            rows="5"
+            spellcheck="false"
+          ></textarea>
+          <div class="scope-warning-box">
+            <span>🛡️ <strong>Strict Scope Enforced:</strong> Only URLs belonging to the selected Search Console property can be inspected. Third-party backlinks must be submitted in the Bulk URL Submitter tab.</span>
+          </div>
+          <div class="inspect-action-bar">
+            <button type="button" class="btn btn-primary" id="btnExecuteInspection">
+              <span>🔍 Run Official Google URL Inspection</span>
+            </button>
+            <span class="inspect-quota-note">Quota: ~2,000 requests/day per property</span>
+          </div>
+        </div>
+
+        <!-- Inspection Results Table -->
+        <div class="inspection-results-wrapper" style="margin-top: 1.5rem;">
+          <h3 class="box-title">Recent Inspection Results</h3>
+          <div class="table-responsive">
+            <table class="data-table" id="gscInspectionTable">
+              <thead>
+                <tr>
+                  <th>URL</th>
+                  <th>Property</th>
+                  <th>Official Status</th>
+                  <th>Verdict</th>
+                  <th>Coverage State</th>
+                  <th>Last Crawled</th>
+                  <th>Inspected At</th>
+                </tr>
+              </thead>
+              <tbody id="gscInspectionTableBody">
+                <tr>
+                  <td colspan="7" class="loading-td">No URLs inspected yet. Select a property and click "Run Official Google URL Inspection".</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 2: SITEMAPS MANAGEMENT -->
+      <div id="gscSitemapsView" class="gsc-subview" style="display: none;">
+        <div class="sitemap-submit-box">
+          <h3 class="box-title">Submit New Sitemap</h3>
+          <p class="box-sub">Enter the sitemap path (e.g. <code>sitemap.xml</code> or <code>sitemap_index.xml</code>) to submit to Google Search Console.</p>
+          <div class="sitemap-form-row">
+            <input type="text" id="sitemapPathInput" class="search-input" placeholder="sitemap.xml">
+            <button type="button" class="btn btn-primary" id="btnSubmitSitemap">Submit Sitemap</button>
+          </div>
+          <div id="sitemapSubmitNotice" class="test-result-alert" style="display: none;"></div>
+        </div>
+
+        <div class="sitemaps-list-box" style="margin-top: 1.5rem;">
+          <div class="card-header-row">
+            <h3 class="box-title">Submitted Sitemaps</h3>
+            <button type="button" class="btn btn-outline-sm" id="btnRefreshSitemaps">🔄 Refresh</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="sitemapsTable">
+              <thead>
+                <tr>
+                  <th>Sitemap Path</th>
+                  <th>Last Submitted</th>
+                  <th>Last Downloaded</th>
+                  <th>Status / Errors</th>
+                  <th>Submitted URLs</th>
+                  <th>Indexed URLs</th>
+                </tr>
+              </thead>
+              <tbody id="sitemapsTableBody">
+                <tr>
+                  <td colspan="6" class="loading-td">Select a property to view submitted sitemaps.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ 2-SECOND LIVE EXECUTION MODAL ============================ -->
+  <div class="modal-backdrop" id="executionModal">
+    <div class="modal-box glass-card execution-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="pulse-bolt">⚡</span>
+          <div>
+            <h3 class="modal-heading">Executing Priority Indexing Pipeline</h3>
+            <p class="modal-sub">Dispatching links to Google priority queue...</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseModal" style="display:none;">✕</button>
+      </div>
+
+      <!-- 2-Second Visual Timer & Progress Bar -->
+      <div class="timer-display-area">
+        <div class="timer-radial-wrap">
+          <div class="timer-countdown" id="timerCountdown">2.0s</div>
+          <span class="timer-sub">Pipeline Speed</span>
+        </div>
+        <div class="stages-progress-bar">
+          <div class="progress-fill" id="pipelineProgressFill"></div>
+        </div>
+      </div>
+
+      <!-- High-Tech Execution Terminal Stages -->
+      <div class="execution-stages-grid">
+        <div class="stage-step" id="stage1">
+          <span class="step-indicator">1</span>
+          <div class="step-info">
+            <div class="step-title">URL Validation &amp; Deduplication</div>
+            <div class="step-desc">Syntax verification and duplicate removal</div>
+          </div>
+          <span class="step-status" id="stage1Status">Pending</span>
+        </div>
+
+        <div class="stage-step" id="stage2">
+          <span class="step-indicator">2</span>
+          <div class="step-info">
+            <div class="step-title">Google Priority Queue Handshake</div>
+            <div class="step-desc">Publishing URL_UPDATED notification dispatch</div>
+          </div>
+          <span class="step-status" id="stage2Status">Pending</span>
+        </div>
+
+        <div class="stage-step" id="stage3">
+          <span class="step-indicator">3</span>
+          <div class="step-info">
+            <div class="step-title">Google WebSub &amp; IndexNow Syndication</div>
+            <div class="step-desc">Pinging Google XML-RPC &amp; IndexNow network</div>
+          </div>
+          <span class="step-status" id="stage3Status">Pending</span>
+        </div>
+
+        <div class="stage-step" id="stage4">
+          <span class="step-indicator">4</span>
+          <div class="step-info">
+            <div class="step-title">Googlebot Bait Crawl Gateway Enqueue</div>
+            <div class="step-desc">Dynamic XML feed syndication &amp; verification</div>
+          </div>
+          <span class="step-status" id="stage4Status">Pending</span>
+        </div>
+      </div>
+
+      <!-- Live URLs Dispatched Stream -->
+      <div class="results-stream-card">
+        <div class="stream-header">
+          <span>Dispatched Links (<span id="modalUrlsCount">0</span>)</span>
+          <span class="badge-status-completed" id="modalBatchIdBadge">Batch: Generating...</span>
+        </div>
+        <div class="stream-body" id="modalResultsList">
+          <div class="stream-placeholder">Initializing fast queue stream...</div>
+        </div>
+      </div>
+
+      <div class="modal-footer-actions" id="modalFooterActions" style="display: none;">
+        <button type="button" class="btn btn-outline" id="btnModalViewBatches">View in History</button>
+        <button type="button" class="btn btn-primary" id="btnModalCloseDone">Done &amp; Return</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ SUBMISSION HISTORY & TRACKING ============================ -->
+  <section class="container section-padded" id="batches">
+    <div class="glass-card batches-card">
+      <div class="section-header-row">
+        <div>
+          <span class="section-eyebrow">Real-Time Auditing</span>
+          <h2 class="section-title">Submission History &amp; Batches</h2>
+          <p class="section-subtitle">Track every batch ID, accepted URLs, and dispatch timing.</p>
+        </div>
+        <div class="batches-controls">
+          <button type="button" class="btn btn-outline-sm" id="btnRefreshBatches">🔄 Refresh</button>
+          <button type="button" class="btn btn-outline-sm" id="btnExportCsv">📥 Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Filter row -->
+      <div class="batches-filter-row">
+        <input type="text" id="batchSearchInput" class="search-input" placeholder="Search by URL or Batch ID...">
+      </div>
+
+      <!-- Batches Table -->
+      <div class="table-responsive">
+        <table class="data-table" id="batchesTable">
+          <thead>
+            <tr>
+              <th>Batch ID</th>
+              <th>URLs Count</th>
+              <th>Dispatch Latency</th>
+              <th>Status</th>
+              <th>Created At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="batchesTableBody">
+            <tr>
+              <td colspan="6" class="loading-td">Loading submission batches...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ DEVELOPER REST API SECTION ============================ -->
+  <section class="container section-padded" id="api-docs">
+    <div class="glass-card api-docs-card">
+      <div class="section-header-row">
+        <div>
+          <span class="section-eyebrow">Automate Anything</span>
+          <h2 class="section-title">Developer REST API</h2>
+          <p class="section-subtitle">Automate URL submissions directly from your custom Python scripts, CI/CD, or cURL.</p>
+        </div>
+        <span class="api-tag">REST v1 • Instant</span>
+      </div>
+
+      <div class="api-code-split">
+        <div class="api-docs-text">
+          <h3 class="endpoint-title">
+            <span class="method-post">POST</span>
+            <code>/v1/index</code>
+          </h3>
+          <p>Submit up to 200 URLs in a single request. Receives immediate batch ID and tracking keys.</p>
+
+          <ul class="api-features-list">
+            <li>✓ Accepts standard JSON array of URLs</li>
+            <li>✓ Automatic duplicate removal and format validation</li>
+            <li>✓ Triggers multi-tier Google priority queue dispatch</li>
+          </ul>
+
+          <div class="api-key-box">
+            <label>Your Local API Endpoint:</label>
+            <div class="copy-input-row">
+              <input type="text" id="apiEndpointUrl" readonly value="http://localhost:3000/v1/index">
+              <button type="button" class="btn btn-outline-sm" id="btnCopyEndpoint">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dots"><i></i><i></i><i></i></span>
+            <span class="terminal-title">cURL Request Example</span>
+          </div>
+          <pre class="code-block"><code><span class="code-comment"># Submit URLs to local InstantIndexing API</span>
+curl -X POST http://localhost:3000/v1/index \
+  -H <span class="code-str">"Content-Type: application/json"</span> \
+  -d <span class="code-str">'{
+    "urls": [
+      "https://example.com/page-1",
+      "https://example.com/page-2",
+      "https://third-party-site.com/post"
+    ]
+  }'</span>
+
+<span class="code-comment"># Instant JSON Response (under 2s)</span>
+{
+  <span class="code-key">"batch_id"</span>: <span class="code-str">"btch_8f4a21"</span>,
+  <span class="code-key">"accepted"</span>: <span class="code-num">3</span>,
+  <span class="code-key">"status"</span>: <span class="code-str">"Processed"</span>
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ FOOTER ============================ -->
+  <footer class="app-footer">
+    <div class="container footer-container">
+      <div class="footer-brand">
+        <div class="brand-logo">
+          <span class="logo-bolt"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 13.5h6.2L9 22l9.5-12.2H12z"/></svg></span>
+          <span class="logo-title">Instant<span class="logo-accent">Indexing</span></span>
+        </div>
+        <p class="footer-desc">Professional URL and backlink indexing acceleration platform with official Google Search Console API integration.</p>
+      </div>
+
+      <div class="footer-links-group">
+        <h4>Navigation</h4>
+        <a href="#backlink-section">Bulk Submitter</a>
+        <a href="#gsc-section">Search Console API</a>
+        <a href="#batches">History &amp; Logs</a>
+        <a href="#api-docs">Developer API</a>
+      </div>
+
+      <div class="footer-links-group">
+        <h4>Feeds &amp; Gateways</h4>
+        <a href="/crawl-hub" target="_blank">Googlebot Crawl Hub ↗</a>
+        <a href="/feed.xml" target="_blank">Syndication RSS XML ↗</a>
+        <a href="/api/index/batches" target="_blank">Raw JSON Batches ↗</a>
+      </div>
+    </div>
+    <div class="footer-bottom-bar">
+      <div class="container bottom-row">
+        <span>© 2026 InstantIndexing Pro. Designed for high-speed Google discovery.</span>
+        <span>⚡ Search Console API + Priority Crawl Dispatch</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

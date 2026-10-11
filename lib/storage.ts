@@ -101,7 +101,14 @@ export async function getBatches(): Promise<BatchRecord[]> {
       }
 
       if (blobUrl) {
-        const res = await fetch(blobUrl, { cache: 'no-store' });
+        const fetchUrl = `${blobUrl}${blobUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+        const res = await fetch(fetchUrl, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        });
         if (res.ok) {
           const data = (await res.json()) as BatchRecord[];
           if (Array.isArray(data)) {

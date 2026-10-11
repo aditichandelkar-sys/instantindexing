@@ -353,25 +353,27 @@ export default function IndexMetrixApp() {
       const waitRemaining = Math.max(0, totalDuration - (Date.now() - startTime));
 
       setTimeout(() => {
-        setStage4Class('stage-step done');
-        setStage4Text('✓ Queued & Processed');
         setModalTimer('0.0s');
         setProgressWidth(100);
 
-        if (data.success && data.batch) {
+        if (response.ok && data.success && data.batch) {
+          setStage4Class('stage-step done');
+          setStage4Text('✓ Queued & Processed');
           setModalBatchId(`Batch: ${data.batch_id}`);
           setModalResults(data.batch.items || []);
           fetchBatches();
         } else {
+          setStage4Class('stage-step error');
+          setStage4Text('✕ Submission Failed');
           setModalError(data.error || 'Submission failed');
         }
         setModalDone(true);
       }, waitRemaining);
     } catch (err: any) {
       setTimeout(() => {
-        setStage4Class('stage-step done');
-        setStage4Text('Completed (Local)');
-        setModalError(err.message);
+        setStage4Class('stage-step error');
+        setStage4Text('✕ Network Error');
+        setModalError(err.message || 'Network request failed');
         setModalDone(true);
       }, 2000);
     }

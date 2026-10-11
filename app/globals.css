@@ -1189,6 +1189,11 @@ button, input, textarea, select {
   background: rgba(16, 185, 129, 0.06);
 }
 
+.stage-step.error {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
 .step-indicator {
   width: 26px;
   height: 26px;
@@ -1209,6 +1214,11 @@ button, input, textarea, select {
 
 .stage-step.done .step-indicator {
   background: #10B981;
+  color: #fff;
+}
+
+.stage-step.error .step-indicator {
+  background: #EF4444;
   color: #fff;
 }
 
@@ -1239,6 +1249,10 @@ button, input, textarea, select {
 
 .stage-step.done .step-status {
   color: #34D399;
+}
+
+.stage-step.error .step-status {
+  color: #F87171;
 }
 
 /* Results Stream Card */

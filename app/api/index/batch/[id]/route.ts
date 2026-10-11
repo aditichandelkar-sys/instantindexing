@@ -7,10 +7,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const batches = getBatches();
-  const found = batches.find(b => b.batchId === params.id);
-  if (!found) {
-    return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
+  try {
+    const batches = await getBatches();
+    const found = batches.find(b => b.batchId === params.id);
+    if (!found) {
+      return NextResponse.json({ success: false, error: 'Batch not found' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, batch: found });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
-  return NextResponse.json({ batch: found });
 }

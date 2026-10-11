@@ -268,8 +268,29 @@ export async function processIndexingBatch(urls: string[]): Promise<BatchRecord>
   const urlItems: BatchItem[] = [];
   let serviceAccountIndex = 0;
 
-  const cleanUrls = Array.from(new Set(urls.map(u => u.trim()).filter(Boolean)))
-    .map(u => (u.startsWith('http://') || u.startsWith('https://')) ? u : 'https://' + u);
+  // Strict URL validation and normalization
+  const validatedUrls: string[] = [];
+  for (const raw of urls) {
+    const trimmed = (raw || '').trim();
+    if (!trimmed) continue;
+    const withProto = (trimmed.startsWith('http://') || trimmed.startsWith('https://'))
+      ? trimmed
+      : 'https://' + trimmed;
+    try {
+      const parsed = new URL(withProto);
+      if ((parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.hostname && parsed.hostname.includes('.')) {
+        validatedUrls.push(parsed.href);
+      }
+    } catch {
+      // Skip invalid URLs
+    }
+  }
+
+  const cleanUrls = Array.from(new Set(validatedUrls));
+
+  if (cleanUrls.length === 0) {
+    throw new Error('No valid HTTP or HTTPS URLs provided. Please ensure URLs have valid format (e.g. https://example.com).');
+  }
 
   const chunkSize = 15;
   for (let c = 0; c < cleanUrls.length; c += chunkSize) {
@@ -350,9 +371,9 @@ export async function processIndexingBatch(urls: string[]): Promise<BatchRecord>
     items: urlItems
   };
 
-  const batches = getBatches();
+  const batches = await getBatches();
   batches.unshift(batchRecord);
-  saveBatches(batches);
+  await saveBatches(batches);
 
   return batchRecord;
 }

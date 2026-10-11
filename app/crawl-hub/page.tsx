@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { getBatches } from '@/lib/storage';
+import CrawlHubClient from './CrawlHubClient';
 
 export const metadata: Metadata = {
   title: 'Googlebot High-Speed Crawl Gateway | Index Metrix Hub',
@@ -12,77 +13,36 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default function CrawlHubPage() {
-  const batches = getBatches();
+export default async function CrawlHubPage() {
   const allUrls: any[] = [];
-  batches.slice(0, 10).forEach(b => {
-    (b.items || []).forEach(item => {
-      if (allUrls.length < 500) allUrls.push(item);
-    });
-  });
+  const seen = new Set<string>();
+  let loadError: string | null = null;
 
-  return (
-    <main style={{ fontFamily: '-apple-system, sans-serif', background: '#0b0f17', color: '#e2e8f0', minHeight: '100vh', padding: '2rem' }}>
-      <h1 style={{ color: '#818cf8', fontSize: '1.8rem', marginBottom: '0.5rem' }}>Googlebot High-Speed Crawl Gateway</h1>
-      <p style={{ color: '#94a3b8', marginBottom: '1.5rem' }}>
-        Fresh URLs queued for Googlebot discovery ({allUrls.length} links listed):
-      </p>
-      <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {allUrls.length === 0 ? (
-          <li style={{ padding: '12px', background: '#1e293b', borderRadius: '6px', color: '#64748b' }}>
-            No URLs queued yet. Submit URLs through Index Metrix bulk submitter.
-          </li>
-        ) : (
-          allUrls.map((item, idx) => (
-            <li
-              key={idx}
-              style={{
-                padding: '10px 14px',
-                background: '#1e293b',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '8px',
-              }}
-            >
-              <a
-                href={item.url}
-                rel="bookmark"
-                target="_blank"
-                style={{ color: '#38bdf8', textDecoration: 'none', wordBreak: 'break-all', fontSize: '0.9rem' }}
-              >
-                {item.url}
-              </a>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    padding: '2px 8px',
-                    borderRadius: '99px',
-                    background: '#374151',
-                    color: '#e5e7eb',
-                  }}
-                >
-                  {item.category?.label || 'Link'}
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    padding: '2px 8px',
-                    borderRadius: '99px',
-                    background: '#065f46',
-                    color: '#6ee7b7',
-                  }}
-                >
-                  ● Queued
-                </span>
-              </div>
-            </li>
-          ))
-        )}
-      </ul>
-    </main>
-  );
+  try {
+    const batches = await getBatches();
+    for (const b of (batches || [])) {
+      for (const item of (b.items || [])) {
+        if (!item || !item.url) continue;
+        const norm = item.url.trim();
+        if (!seen.has(norm)) {
+          seen.add(norm);
+          allUrls.push({
+            url: norm,
+            trackingId: item.trackingId || '',
+            category: item.category || { label: 'Link', type: 'backlink' },
+            status: item.status || 'Processed',
+            submittedAt: item.submittedAt || b.createdAt,
+            batchId: b.batchId,
+          });
+          if (allUrls.length >= 500) break;
+        }
+      }
+      if (allUrls.length >= 500) break;
+    }
+  } catch (err: any) {
+    console.error('[CrawlHubPage] Failed to load batches from storage:', err.message);
+    loadError = err.message || 'Unable to retrieve queued URLs from persistent storage.';
+  }
+
+  return <CrawlHubClient initialUrls={allUrls} initialError={loadError} />;
 }

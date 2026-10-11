@@ -4,15 +4,22 @@ import { getBatches } from '@/lib/storage';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const batches = getBatches();
+  const batches = await getBatches();
   const items: any[] = [];
-  batches.slice(0, 5).forEach(b => {
+  const seen = new Set<string>();
+
+  (batches || []).slice(0, 10).forEach(b => {
     (b.items || []).forEach(item => {
-      if (items.length < 100) items.push(item);
+      if (!item || !item.url) return;
+      const norm = item.url.trim();
+      if (!seen.has(norm) && items.length < 100) {
+        seen.add(norm);
+        items.push(item);
+      }
     });
   });
 
-  const baseUrl = 'https://indexmetrixx.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://indexmetrixx.vercel.app';
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -28,9 +35,9 @@ export async function GET() {
     <item>
       <title>${escapeXml(item.category?.label || 'URL')}: ${escapeXml(item.url)}</title>
       <link>${escapeXml(item.url)}</link>
-      <guid>${escapeXml(item.trackingId)}</guid>
-      <pubDate>${new Date(item.submittedAt).toUTCString()}</pubDate>
-      <description>Submitted for instant indexing via Index Metrix pipeline.</description>
+      <guid>${escapeXml(item.trackingId || item.url)}</guid>
+      <pubDate>${new Date(item.submittedAt || Date.now()).toUTCString()}</pubDate>
+      <description>Submitted for discovery via Index Metrix crawl gateway.</description>
     </item>`;
   });
 

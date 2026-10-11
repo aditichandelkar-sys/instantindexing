@@ -15,6 +15,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Google Search Console Dynamic HTML File Verification Handler
+app.get(/google.*\.html$/, (req, res) => {
+  const filename = path.basename(req.path);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`google-site-verification: ${filename}`);
+});
+
 // Ensure data directory exists
 const DATA_DIR = process.env.VERCEL
   ? path.join(require('os').tmpdir(), 'data')

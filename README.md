@@ -1,6 +1,6 @@
 # Index Metrix ⚡ — Fast URL & Backlink Indexer for Google
 
-Index Metrix is a high-speed, multi-tier URL and backlink indexing acceleration platform with official **Google Search Console API** integration.
+Index Metrix is a high-speed, multi-tier URL and backlink indexing acceleration platform built on **Next.js 14 App Router** with official **Google Search Console API** integration.
 
 ---
 
@@ -18,6 +18,7 @@ Index Metrix is a high-speed, multi-tier URL and backlink indexing acceleration 
 
 ### 2. 🔍 Google Search Console API (Authorized Properties)
 * **Secure OAuth 2.0 Flow:** Connect with Google using official Google consent and disconnect anytime.
+* **Encrypted Cookie Sessions:** Stateless AES-256 encrypted session cookies with CSRF state protection.
 * **Property Scoping:** Fetches and displays only properties verified in the user's Search Console account (`sc-domain:...` or `https://...`).
 * **Official URL Inspection API:** Real-time inspection via `https://searchconsole.googleapis.com/v1/urlInspection/index:inspect`.
   * Returns accurate Google statuses: `Indexed`, `Not Indexed`, `Failed`, or `Pending`.
@@ -45,22 +46,23 @@ Index Metrix is a high-speed, multi-tier URL and backlink indexing acceleration 
    * Click **Create Credentials > OAuth client ID**.
    * Application type: **Web application**.
    * Name: `Index Metrix Web Client`.
-   * **Authorized redirect URIs:** Add `https://indexmetrix.vercel.app/auth/google/callback` and `http://localhost:3000/auth/google/callback`
+   * **Authorized redirect URIs:**
+     * `https://indexmetrixx.vercel.app/auth/google/callback`
+     * `http://localhost:3000/auth/google/callback`
    * Click **Create** and copy your **Client ID** and **Client Secret**.
 
 ### Step 2: Configure Environment Variables
-Open or create `.env` in the project root:
+Set the following environment variables in `.env.local` or in Vercel Project Settings:
 ```env
-PORT=3000
+NEXT_PUBLIC_SITE_URL=https://indexmetrixx.vercel.app
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
-APP_SECRET=instant_indexing_secret
+GOOGLE_REDIRECT_URI=https://indexmetrixx.vercel.app/auth/google/callback
+APP_SECRET=index_metrix_super_secure_random_key_change_me
 ```
 
 ### Step 3: Run the Application
 ```bash
-# Double-click start.bat OR run via terminal:
-npm start
+npm run dev
 ```
-Open **`http://localhost:3000`** in your browser, switch to the **Google Search Console** tab, and click **Connect Google Search Console**!
+Open **`http://localhost:3000`** in your browser, switch to the **Google Search Console** tab, and click **Connect Google**!

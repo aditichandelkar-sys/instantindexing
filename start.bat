@@ -4,5 +4,5 @@ echo ====================================================
 echo Starting Index Metrix Server...
 echo ====================================================
 cd /d "%~dp0"
-node server.js
+npm run dev
 pause

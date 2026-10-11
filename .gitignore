@@ -1,5 +1,6 @@
-# Dependencies
+# Dependencies & Build Outputs
 node_modules/
+.next/
 package-lock.json
 
 # Environment variables & secrets (CRITICAL: NEVER COMMIT TO GIT)

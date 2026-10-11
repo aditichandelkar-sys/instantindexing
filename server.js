@@ -16,7 +16,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Ensure data directory exists
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.VERCEL
+  ? path.join(require('os').tmpdir(), 'data')
+  : path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
@@ -1231,11 +1233,15 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`🚀 InstantIndexing Pro Server running at: http://localhost:${PORT}`);
-  console.log(`⚡ Google Search Console API + Multi-Tier Engine Active`);
-  console.log(`🌐 Googlebot Crawl Hub at: http://localhost:${PORT}/crawl-hub`);
-  console.log(`📡 Syndication RSS Feed at: http://localhost:${PORT}/feed.xml`);
-  console.log(`====================================================`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(`🚀 InstantIndexing Pro Server running at: http://localhost:${PORT}`);
+    console.log(`⚡ Google Search Console API + Multi-Tier Engine Active`);
+    console.log(`🌐 Googlebot Crawl Hub at: http://localhost:${PORT}/crawl-hub`);
+    console.log(`📡 Syndication RSS Feed at: http://localhost:${PORT}/feed.xml`);
+    console.log(`====================================================`);
+  });
+}
+
+module.exports = app;

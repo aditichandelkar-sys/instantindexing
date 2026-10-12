@@ -170,6 +170,107 @@ async function runTests() {
     assert.strictEqual(errorThrown, true, 'Should throw validation error');
   });
 
+  // 11. GSC Session AES-256-GCM Authenticated Encryption & Decryption
+  await test('GSC Auth: AES-256-GCM Session Encryption and Decryption Roundtrip', async () => {
+    const { encryptSession, decryptSession } = await import('../lib/gsc-auth');
+    const testSession = {
+      connectedAt: '2026-10-12T00:00:00.000Z',
+      tokens: {
+        access_token: 'ya29.test_token_value',
+        refresh_token: '1//test_refresh_value',
+        expiry_date: Date.now() + 3600000,
+        scope: 'https://www.googleapis.com/auth/webmasters.readonly openid email',
+        token_type: 'Bearer'
+      },
+      user: { email: 'verified@example.com' }
+    };
+
+    const encrypted = encryptSession(testSession as any);
+    assert.ok(encrypted.includes(':'), 'Encrypted token should contain iv:tag:ciphertext components');
+    const parts = encrypted.split(':');
+    assert.strictEqual(parts.length, 3, 'Should have exactly 3 parts');
+
+    const decrypted = decryptSession(encrypted);
+    assert.ok(decrypted, 'Decrypted session should not be null');
+    assert.strictEqual(decrypted?.user?.email, 'verified@example.com');
+    assert.strictEqual(decrypted?.tokens?.access_token, 'ya29.test_token_value');
+  });
+
+  // 12. GSC Insufficient Scope Rejection
+  await test('GSC Auth: Rejects Sessions Without Webmasters Scope (HTTP 403)', async () => {
+    const { getValidAccessToken } = await import('../lib/gsc-auth');
+    const badScopeSession = {
+      connectedAt: '2026-10-12T00:00:00.000Z',
+      tokens: {
+        access_token: 'ya29.test_userinfo_only',
+        refresh_token: '1//test_refresh_value',
+        expiry_date: Date.now() + 3600000,
+        scope: 'https://www.googleapis.com/auth/userinfo.profile openid email', // Missing webmasters
+        token_type: 'Bearer'
+      },
+      user: { email: 'user@example.com' }
+    };
+
+    let caughtError: any = null;
+    try {
+      await getValidAccessToken(badScopeSession as any);
+    } catch (err: any) {
+      caughtError = err;
+    }
+
+    assert.ok(caughtError, 'Should throw error when webmasters scope is missing');
+    assert.strictEqual(caughtError.statusCode, 403, 'Should specify HTTP 403 status code');
+    assert.ok(caughtError.message.includes('Search Console permissions were not granted'), 'Should explain missing scope');
+  });
+
+  // 13. GSC Expired Token Without Refresh Token
+  await test('GSC Auth: Rejects Expired Token Lacking Refresh Token (HTTP 401)', async () => {
+    const { getValidAccessToken } = await import('../lib/gsc-auth');
+    const expiredSession = {
+      connectedAt: '2026-10-01T00:00:00.000Z',
+      tokens: {
+        access_token: 'ya29.expired_token',
+        refresh_token: undefined, // Missing refresh token
+        expiry_date: Date.now() - 3600000, // Expired 1 hour ago
+        scope: 'https://www.googleapis.com/auth/webmasters.readonly openid',
+        token_type: 'Bearer'
+      },
+      user: { email: 'user@example.com' }
+    };
+
+    let caughtError: any = null;
+    try {
+      await getValidAccessToken(expiredSession as any);
+    } catch (err: any) {
+      caughtError = err;
+    }
+
+    assert.ok(caughtError, 'Should throw error when expired and no refresh token');
+    assert.strictEqual(caughtError.statusCode, 401, 'Should specify HTTP 401 status code');
+  });
+
+  // 14. GSC Null Session Rejection
+  await test('GSC Auth: Rejects Null or Missing Session (HTTP 401)', async () => {
+    const { getValidAccessToken } = await import('../lib/gsc-auth');
+    let caughtError: any = null;
+    try {
+      await getValidAccessToken(null as any);
+    } catch (err: any) {
+      caughtError = err;
+    }
+
+    assert.ok(caughtError, 'Should throw error for null session');
+    assert.strictEqual(caughtError.statusCode, 401, 'Should specify HTTP 401 status code');
+  });
+
+  // 15. Decryption of Tampered Cookie Rejection
+  await test('GSC Auth: Decrypting Tampered Cookie Safely Returns Null', async () => {
+    const { decryptSession } = await import('../lib/gsc-auth');
+    assert.strictEqual(decryptSession('invalid:malformed:cookie'), null);
+    assert.strictEqual(decryptSession(''), null);
+    assert.strictEqual(decryptSession('not-even-parts'), null);
+  });
+
   console.log('\n======================================================');
   console.log(`TEST SUMMARY: ${passed} PASSED, ${failed} FAILED`);
   console.log('======================================================');

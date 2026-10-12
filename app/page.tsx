@@ -57,6 +57,8 @@ export default function IndexMetrixApp() {
   const [propertyPermission, setPropertyPermission] = useState('-');
   const [propertyType, setPropertyType] = useState('-');
   const [isRedirectingGoogle, setIsRedirectingGoogle] = useState(false);
+  const [gscError, setGscError] = useState<string | null>(null);
+  const [isLoadingProperties, setIsLoadingProperties] = useState(false);
 
   // GSC URL Inspection
   const [inspectText, setInspectText] = useState('');
@@ -89,7 +91,11 @@ export default function IndexMetrixApp() {
 
     // Hash or URL param
     const params = new URLSearchParams(window.location.search);
-    if (params.get('gsc') === 'connected' || window.location.hash === '#search-console' || window.location.hash === '#gsc-section') {
+    const gscErr = params.get('gsc_error');
+    if (gscErr) {
+      setGscError(decodeURIComponent(gscErr));
+      setActiveTab('gsc');
+    } else if (params.get('gsc') === 'connected' || window.location.hash === '#search-console' || window.location.hash === '#gsc-section') {
       setActiveTab('gsc');
     }
 
@@ -128,31 +134,52 @@ export default function IndexMetrixApp() {
         fetchProperties();
       } else {
         setGscProperties([]);
+        if (data.error) {
+          setGscError(data.error);
+        }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to fetch GSC status:', e);
+      setGscError('Failed to communicate with Search Console API');
     }
   }
 
   async function fetchProperties() {
+    setIsLoadingProperties(true);
+    setGscError(null);
     try {
       const res = await fetch('/api/gsc/sites');
       const data = await res.json();
       if (data.needReconnect || res.status === 401 || res.status === 403) {
         setGscStatus({ connected: false, isConfigured: true, user: null });
         setGscProperties([]);
+        setSelectedProperty('');
+        if (data.error) {
+          setGscError(data.error);
+        }
+        return;
+      }
+      if (data.error) {
+        setGscError(data.error);
         return;
       }
       if (data.sites) {
         setGscProperties(data.sites);
+        if (data.sites.length > 0 && !selectedProperty) {
+          handlePropertySelect(data.sites[0].siteUrl);
+        }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to load GSC properties:', e);
+      setGscError(e.message || 'Failed to communicate with Search Console API');
+    } finally {
+      setIsLoadingProperties(false);
     }
   }
 
   async function handleConnectGoogle() {
     setIsRedirectingGoogle(true);
+    setGscError(null);
     try {
       const res = await fetch('/api/gsc/auth-url');
       const data = await res.json();
@@ -177,6 +204,7 @@ export default function IndexMetrixApp() {
       setSelectedProperty('');
       setPropertyPermission('-');
       setPropertyType('-');
+      setGscError(null);
       alert('Google Search Console disconnected.');
     } catch (err: any) {
       alert('Error disconnecting: ' + err.message);
@@ -951,11 +979,19 @@ export default function IndexMetrixApp() {
               </div>
               <div className="gsc-oauth-actions">
                 <div
-                  className={`connection-badge ${gscStatus.connected ? 'connected' : 'disconnected'}`}
+                  className={`connection-badge ${
+                    gscStatus.connected && !gscError
+                      ? 'connected'
+                      : gscError
+                      ? 'unverified'
+                      : 'disconnected'
+                  }`}
                 >
                   <span className="dot-status"></span>
                   <span>
-                    {gscStatus.connected
+                    {gscError
+                      ? 'Action Required (Reconnect)'
+                      : gscStatus.connected
                       ? `Connected as ${gscStatus.user?.email || 'Google User'}`
                       : gscStatus.isConfigured
                       ? 'Ready to Connect'
@@ -979,6 +1015,47 @@ export default function IndexMetrixApp() {
               </div>
             </div>
 
+            {/* Error & Warning Alert Banner */}
+            {gscError && (
+              <div
+                className="test-result-alert error"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  margin: '1.25rem 0',
+                  padding: '1rem 1.25rem',
+                  borderRadius: '10px',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#FCA5A5',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+                  <span>{gscError}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                    onClick={handleConnectGoogle}
+                  >
+                    Reconnect Google
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-sm"
+                    onClick={() => setGscError(null)}
+                    title="Dismiss notice"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* GSC Property Selector & Stats Bar */}
             <div className="gsc-property-card" id="gscPropertyCard">
               <div className="property-select-group">
@@ -992,14 +1069,17 @@ export default function IndexMetrixApp() {
                     className="select-property"
                     value={selectedProperty}
                     onChange={e => handlePropertySelect(e.target.value)}
+                    disabled={!gscStatus.connected || isLoadingProperties}
                   >
                     {!gscStatus.connected ? (
                       <option value="">-- Connect Google Search Console first --</option>
+                    ) : isLoadingProperties ? (
+                      <option value="">⏳ Loading verified properties from Google API...</option>
                     ) : gscProperties.length === 0 ? (
                       <option value="">No verified sites found in this Google account</option>
                     ) : (
                       <>
-                        <option value="">-- Select an authorized property --</option>
+                        <option value="">-- Select an authorized property ({gscProperties.length} available) --</option>
                         {gscProperties.map(site => (
                           <option key={site.siteUrl} value={site.siteUrl}>
                             {site.siteUrl} ({site.permissionLevel})
@@ -1012,9 +1092,10 @@ export default function IndexMetrixApp() {
                     type="button"
                     className="btn btn-outline-sm"
                     onClick={fetchProperties}
-                    title="Refresh properties"
+                    disabled={isLoadingProperties || !gscStatus.connected}
+                    title="Refresh properties from Google Search Console API"
                   >
-                    🔄
+                    {isLoadingProperties ? '⏳' : '🔄'}
                   </button>
                 </div>
               </div>

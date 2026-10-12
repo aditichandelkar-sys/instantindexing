@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { decryptSession, getValidAccessToken, fetchSearchConsoleSites, encryptSession } from '@/lib/gsc-auth';
-import { getGscAuthFile } from '@/lib/storage';
+import { getGscAuthFile, clearGscAuthFile } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,11 +14,28 @@ export async function GET(request: NextRequest) {
     session = getGscAuthFile();
   }
 
-  if (!session) {
-    return NextResponse.json(
-      { error: 'Google Search Console is not connected. Please connect your account first.' },
+  if (!session || !session.tokens?.access_token) {
+    const res = NextResponse.json(
+      { error: 'Google Search Console is not connected. Please connect your account first.', sites: [], needReconnect: true },
       { status: 401 }
     );
+    res.cookies.delete('gsc_session');
+    return res;
+  }
+
+  // Pre-flight check: ensure Search Console scope was granted
+  if (session.tokens.scope && !session.tokens.scope.includes('webmasters')) {
+    clearGscAuthFile();
+    const res = NextResponse.json(
+      {
+        error: 'Search Console permissions were not granted during login. Please reconnect your Google account and check the Search Console permission box.',
+        sites: [],
+        needReconnect: true,
+      },
+      { status: 403 }
+    );
+    res.cookies.delete('gsc_session');
+    return res;
   }
 
   try {
@@ -39,9 +56,19 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (err: any) {
-    return NextResponse.json(
-      { error: 'Failed to retrieve Search Console sites: ' + (err.message || 'API error') },
-      { status: 500 }
+    const status = err.statusCode || (err.message?.includes('403') || err.message?.includes('insufficient') ? 403 : 401);
+    
+    // Clear stale session on auth failure so client stops failing in an error loop
+    clearGscAuthFile();
+    const response = NextResponse.json(
+      {
+        error: 'Failed to retrieve Search Console sites: ' + (err.message || 'API error'),
+        sites: [],
+        needReconnect: true,
+      },
+      { status }
     );
+    response.cookies.delete('gsc_session');
+    return response;
   }
 }

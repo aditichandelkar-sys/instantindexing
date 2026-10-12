@@ -43,9 +43,14 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (err: any) {
-    return NextResponse.json(
-      { error: 'Failed to fetch sitemaps: ' + (err.message || 'API error') },
-      { status: 500 }
+    const status = err.statusCode || (err.message?.includes('403') || err.message?.includes('insufficient') ? 403 : (err.message?.includes('expired') || err.message?.includes('reconnect') ? 401 : 500));
+    const response = NextResponse.json(
+      { error: 'Failed to fetch sitemaps: ' + (err.message || 'API error'), needReconnect: status === 401 || status === 403 },
+      { status }
     );
+    if (status === 401 || status === 403) {
+      response.cookies.delete('gsc_session');
+    }
+    return response;
   }
 }

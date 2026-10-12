@@ -32,6 +32,13 @@ export async function GET(request: NextRequest) {
     const redirectUri = request.cookies.get('gsc_oauth_redirect_uri')?.value || `${baseUrl}/auth/google/callback`;
     const { tokens, user } = await exchangeCodeForTokens(code, redirectUri);
 
+    // Verify Search Console permission was actually granted
+    if (tokens.scope && !tokens.scope.includes('webmasters')) {
+      return NextResponse.redirect(
+        `${baseUrl}/?gsc_error=${encodeURIComponent('Search Console permissions were not granted. Please check the Search Console permission box on Google consent screen.')}#search-console`
+      );
+    }
+
     const session: GscAuthSession = {
       connectedAt: new Date().toISOString(),
       tokens: {

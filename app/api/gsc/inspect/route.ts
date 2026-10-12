@@ -89,9 +89,14 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (err: any) {
-    return NextResponse.json(
-      { error: 'URL inspection error: ' + (err.message || 'Server error') },
-      { status: 500 }
+    const status = err.statusCode || (err.message?.includes('403') || err.message?.includes('insufficient') ? 403 : (err.message?.includes('expired') || err.message?.includes('reconnect') ? 401 : 500));
+    const response = NextResponse.json(
+      { error: 'URL inspection error: ' + (err.message || 'Server error'), needReconnect: status === 401 || status === 403 },
+      { status }
     );
+    if (status === 401 || status === 403) {
+      response.cookies.delete('gsc_session');
+    }
+    return response;
   }
 }

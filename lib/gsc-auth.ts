@@ -196,27 +196,48 @@ export async function refreshAccessToken(refreshToken: string): Promise<{ access
 
 // Get valid token from session, refreshing if needed
 export async function getValidAccessToken(session: GscAuthSession): Promise<{ token: string; updatedSession?: GscAuthSession }> {
+  if (!session || !session.tokens) {
+    const err: any = new Error('No Google Search Console session found. Please connect your account.');
+    err.statusCode = 401;
+    throw err;
+  }
+
+  // Check if Search Console permission was granted
+  if (session.tokens.scope && !session.tokens.scope.includes('webmasters')) {
+    const err: any = new Error('Search Console permissions were not granted during Google login. Please reconnect and check the Search Console permission box.');
+    err.statusCode = 403;
+    throw err;
+  }
+
   const now = Date.now();
   if (session.tokens.access_token && session.tokens.expiry_date > now + 180000) {
     return { token: session.tokens.access_token };
   }
 
   if (!session.tokens.refresh_token) {
-    throw new Error('Session expired. Please reconnect Google Search Console.');
+    const err: any = new Error('Session expired. Please reconnect Google Search Console.');
+    err.statusCode = 401;
+    throw err;
   }
 
-  const refreshed = await refreshAccessToken(session.tokens.refresh_token);
-  const updated: GscAuthSession = {
-    ...session,
-    tokens: {
-      ...session.tokens,
-      access_token: refreshed.access_token,
-      expiry_date: Date.now() + ((refreshed.expires_in || 3600) * 1000)
-    }
-  };
+  try {
+    const refreshed = await refreshAccessToken(session.tokens.refresh_token);
+    const updated: GscAuthSession = {
+      ...session,
+      tokens: {
+        ...session.tokens,
+        access_token: refreshed.access_token,
+        expiry_date: Date.now() + ((refreshed.expires_in || 3600) * 1000)
+      }
+    };
 
-  saveGscAuthFile(updated);
-  return { token: refreshed.access_token, updatedSession: updated };
+    saveGscAuthFile(updated);
+    return { token: refreshed.access_token, updatedSession: updated };
+  } catch (refreshErr: any) {
+    const err: any = new Error(refreshErr.message || 'Session expired or revoked. Please reconnect Google Search Console.');
+    err.statusCode = 401;
+    throw err;
+  }
 }
 
 // Google Search Console API: List sites
@@ -233,14 +254,21 @@ export async function fetchSearchConsoleSites(accessToken: string): Promise<GscS
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             resolve(parsed.siteEntry || []);
           } else {
-            reject(new Error(parsed.error?.message || `HTTP ${res.statusCode}`));
+            const err: any = new Error(parsed.error?.message || `HTTP ${res.statusCode}`);
+            err.statusCode = res.statusCode || 400;
+            reject(err);
           }
         } catch (e) {
-          reject(new Error('Failed to parse Search Console sites response'));
+          const err: any = new Error('Failed to parse Search Console sites response');
+          err.statusCode = 502;
+          reject(err);
         }
       });
     });
-    req.on('error', reject);
+    req.on('error', (netErr: any) => {
+      netErr.statusCode = 504;
+      reject(netErr);
+    });
     req.end();
   });
 }
@@ -375,14 +403,21 @@ export async function listSitemaps(accessToken: string, siteUrl: string): Promis
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             resolve(parsed.sitemap || []);
           } else {
-            reject(new Error(parsed.error?.message || `HTTP ${res.statusCode}`));
+            const err: any = new Error(parsed.error?.message || `HTTP ${res.statusCode}`);
+            err.statusCode = res.statusCode || 400;
+            reject(err);
           }
         } catch (e) {
-          reject(new Error('Failed to parse sitemaps response'));
+          const err: any = new Error('Failed to parse sitemaps response');
+          err.statusCode = 502;
+          reject(err);
         }
       });
     });
-    req.on('error', reject);
+    req.on('error', (netErr: any) => {
+      netErr.statusCode = 504;
+      reject(netErr);
+    });
     req.end();
   });
 }

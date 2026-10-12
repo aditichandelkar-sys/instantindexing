@@ -126,6 +126,8 @@ export default function IndexMetrixApp() {
       setGscStatus(data);
       if (data.connected) {
         fetchProperties();
+      } else {
+        setGscProperties([]);
       }
     } catch (e) {
       console.warn('Failed to fetch GSC status:', e);
@@ -136,6 +138,11 @@ export default function IndexMetrixApp() {
     try {
       const res = await fetch('/api/gsc/sites');
       const data = await res.json();
+      if (data.needReconnect || res.status === 401 || res.status === 403) {
+        setGscStatus({ connected: false, isConfigured: true, user: null });
+        setGscProperties([]);
+        return;
+      }
       if (data.sites) {
         setGscProperties(data.sites);
       }
